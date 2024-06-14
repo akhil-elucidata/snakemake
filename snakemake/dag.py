@@ -326,6 +326,23 @@ class DAG(DAGExecutorInterface, DAGReportInterface):
                     not in self.workflow.storage_settings.shared_fs_usage
                 )
             )
+            # DAG-jobs may have jobs of rules which are not part of
+            # DAG-rules. Such jobs do not actually execute, even tho
+            # they are part of the DAG. Hence, Do NOT consider them
+            # for conda-env deployment.
+            # This is helpful in case of cluster/cloud execution
+            # where snakemake uses target-job & allow-rules settings
+            # for submitting an individual job to the cluster, and
+            # only target-job's conda-env is needed & should be created
+            # on the machine on which the job runs.
+            # Example - 
+            # Target-job '3' may need inputs from jobs '1' & '2'
+            # and hence DAG-jobs will contain all of these three jobs.
+            # However, if allowed-rules is set to ['r3'] corresponding
+            # to job '3', then only job '3' will actually execute.
+            # So we only need to consider conda-env for job '3', even
+            # tho DAG-jobs contain jobs ['1', '2', '3'].
+            and job.rule in self.rules
         }
 
         # Then based on md5sum values
